@@ -15,48 +15,45 @@ router.get('/', async (req, res) => {
       houseType, 
       page = 1, 
       limit = 10,
-      sortBy = 'created_at' 
+      sortBy = 'created_at',
+      status = 'published'
     } = req.query
 
     // 构建查询条件
-    let whereConditions = ['status = ?']
-    let queryParams = ['published']
+    let whereConditions = []
+    let queryParams = []
     
+    // 处理状态参数
+    if (status && status !== 'all') {
+      whereConditions.push('status = ?')
+      queryParams.push(status)
+    } else {
+      // 默认只显示已发布的房源
+      whereConditions.push('status = ?')
+      queryParams.push('published')
+    }
+    
+    // 处理城市筛选
     if (city) {
       whereConditions.push('city LIKE ?')
       queryParams.push(`%${city}%`)
     }
     
-    if (district) {
-      whereConditions.push('district LIKE ?')
-      queryParams.push(`%${district}%`)
-    }
-    
-    if (priceMin) {
-      whereConditions.push('price >= ?')
-      queryParams.push(parseInt(priceMin))
-    }
-    
-    if (priceMax) {
-      whereConditions.push('price <= ?')
-      queryParams.push(parseInt(priceMax))
-    }
-    
-    if (houseType) {
-      whereConditions.push('house_type LIKE ?')
-      queryParams.push(`%${houseType}%`)
-    }
-
     const whereClause = whereConditions.length > 0 ? 
       `WHERE ${whereConditions.join(' AND ')}` : ''
-
+    
     // 计算分页
     const offset = (page - 1) * limit
     
-    // 简化查询 - 先测试基本查询
+    // 使用字符串拼接处理分页参数，避免参数化LIMIT/OFFSET的问题
+    const limitClause = `LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`
+    
+    // 执行查询
+    console.log('查询SQL:', `SELECT * FROM listings ${whereClause} ORDER BY created_at DESC ${limitClause}`)
+    console.log('查询参数:', queryParams)
     const result = await query(
-      'SELECT * FROM listings WHERE status = ? ORDER BY created_at DESC LIMIT 10',
-      ['published']
+      `SELECT * FROM listings ${whereClause} ORDER BY created_at DESC ${limitClause}`,
+      queryParams
     )
 
     if (!result.success) {
@@ -66,9 +63,11 @@ router.get('/', async (req, res) => {
     const listings = result.data
 
     // 查询总数
+    console.log('总数查询SQL:', `SELECT COUNT(*) as total FROM listings ${whereClause}`)
+    console.log('总数查询参数:', queryParams)
     const totalResult = await query(
-      'SELECT COUNT(*) as total FROM listings WHERE status = ?',
-      ['published']
+      `SELECT COUNT(*) as total FROM listings ${whereClause}`,
+      queryParams
     )
 
     if (!totalResult.success) {
@@ -91,9 +90,11 @@ router.get('/', async (req, res) => {
     })
   } catch (error) {
     console.error('获取房源列表错误:', error)
+    console.error('错误详情:', error.message, error.stack)
     res.status(500).json({ 
       success: false, 
-      error: '获取房源列表失败' 
+      error: '获取房源列表失败',
+      details: error.message
     })
   }
 })
@@ -206,11 +207,11 @@ router.post('/', async (req, res) => {
     const result = await query(`
       INSERT INTO listings (
         title, city, district, address, price, house_type, area, 
-        description, contact_name, contact_phone, contact_wechat, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        description, contact_phone, contact_wechat, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
-      title, city, district, address, price, houseType, area,
-      description, contactName, contactPhone, contactWechat, status
+      title, city, district || '', address || '', parseInt(price), houseType || '', area ? parseInt(area) : null,
+      description || '', contactPhone, contactWechat || '', status
     ])
 
     if (result.success) {
@@ -233,6 +234,116 @@ router.post('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: '房源发布失败，请稍后重试'
+    })
+  }
+})
+
+// 更新房源信息
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const {
+      title,
+      city,
+      district,
+      address,
+      price,
+      houseType,
+      area,
+      description,
+      contactName,
+      contactPhone,
+      contactWechat,
+      status
+    } = req.body
+
+    // 检查房源是否存在
+    const existingResult = await query(
+      'SELECT id FROM listings WHERE id = ?',
+      [parseInt(id)]
+    )
+
+    if (!existingResult.success || existingResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '房源不存在'
+      })
+    }
+
+    // 更新房源数据
+    const result = await query(`
+      UPDATE listings SET 
+        title = ?, city = ?, district = ?, address = ?, price = ?, 
+        house_type = ?, area = ?, description = ?, 
+        contact_phone = ?, contact_wechat = ?, status = ?, updated_at = NOW()
+      WHERE id = ?
+    `, [
+      title, city, district || '', address || '', parseInt(price), 
+      houseType || '', area ? parseInt(area) : null, description || '', 
+      contactPhone, contactWechat || '', status, parseInt(id)
+    ])
+
+    if (result.success) {
+      res.json({
+        success: true,
+        data: {
+          id: parseInt(id),
+          title,
+          city,
+          status,
+          updatedAt: new Date().toISOString()
+        },
+        message: '房源更新成功'
+      })
+    } else {
+      throw new Error('数据库更新失败')
+    }
+  } catch (error) {
+    console.error('更新房源错误:', error)
+    res.status(500).json({
+      success: false,
+      error: '房源更新失败，请稍后重试'
+    })
+  }
+})
+
+// 删除房源
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // 检查房源是否存在
+    const existingResult = await query(
+      'SELECT id FROM listings WHERE id = ?',
+      [parseInt(id)]
+    )
+
+    if (!existingResult.success || existingResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '房源不存在'
+      })
+    }
+
+    // 删除房源数据
+    const result = await query(
+      'DELETE FROM listings WHERE id = ?',
+      [parseInt(id)]
+    )
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: '房源删除成功'
+      })
+    } else {
+      throw new Error('数据库删除失败')
+    }
+  } catch (error) {
+    console.error('删除房源错误:', error)
+    res.status(500).json({
+      success: false,
+      error: '房源删除失败，请稍后重试'
     })
   }
 })

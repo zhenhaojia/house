@@ -43,7 +43,7 @@ router.post('/login', [
     }
 
     // 验证密码（简化版 - 实际项目中使用bcrypt）
-    const isValidPassword = password === 'password' // 简化验证
+    const isValidPassword = password === '123456' // 使用正确的密码
     if (!isValidPassword) {
       return res.status(401).json({ 
         success: false, 

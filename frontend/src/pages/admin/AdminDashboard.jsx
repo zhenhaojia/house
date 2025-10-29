@@ -54,13 +54,13 @@ function AdminDashboard() {
       // 获取所有房源（包括待审核的）
       const response = await listingAPI.getListings({ status: 'all' })
       // 正确访问嵌套的数据结构
-      const listingsData = response.data?.data?.listings || []
+      const listingsData = response?.data?.listings || []
       setListings(listingsData)
       
       // 计算统计数据
       const total = listingsData.length || 0
       const published = listingsData.filter(l => l.status === 'published').length || 0
-      const pending = listingsData.filter(l => l.status === 'pending').length || 0
+      const draft = listingsData.filter(l => l.status === 'draft').length || 0
       const today = listingsData.filter(l => 
         new Date(l.created_at).toDateString() === new Date().toDateString()
       ).length || 0
@@ -68,7 +68,7 @@ function AdminDashboard() {
       setStats({
         totalListings: total,
         publishedListings: published,
-        pendingListings: pending,
+        pendingListings: draft,
         todayListings: today
       })
     } catch (error) {
@@ -88,7 +88,7 @@ function AdminDashboard() {
           title: '朝阳区国贸一室一厅',
           city: '北京',
           price: 8500,
-          status: 'pending',
+          status: 'draft',
           created_at: '2024-01-14'
         },
         {
@@ -96,7 +96,7 @@ function AdminDashboard() {
           title: '待审核房源 - 朝阳区豪华公寓',
           city: '北京',
           price: 15000,
-          status: 'pending',
+          status: 'draft',
           created_at: new Date().toISOString()
         }
       ]
@@ -104,7 +104,7 @@ function AdminDashboard() {
       setStats({
         totalListings: mockListings.length,
         publishedListings: mockListings.filter(l => l.status === 'published').length,
-        pendingListings: mockListings.filter(l => l.status === 'pending').length,
+        pendingListings: mockListings.filter(l => l.status === 'draft').length,
         todayListings: 1
       })
     } finally {

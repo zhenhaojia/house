@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Upload, MapPin, Bed, Square, DollarSign } from 'lucide-react'
 import { listingAPI } from '../services/api'
 
-function ListingForm({ isOpen, onClose, onSuccess }) {
+function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
   const [formData, setFormData] = useState({
     title: '',
     city: '',
@@ -24,6 +24,43 @@ function ListingForm({ isOpen, onClose, onSuccess }) {
 
   const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '西安', '重庆']
   const houseTypes = ['1室0厅', '1室1厅', '2室1厅', '2室2厅', '3室1厅', '3室2厅', '4室2厅', '其他']
+
+  // 当编辑房源时，填充表单数据
+  useEffect(() => {
+    if (editingListing) {
+      setFormData({
+        title: editingListing.title || '',
+        city: editingListing.city || '',
+        district: editingListing.district || '',
+        address: editingListing.address || '',
+        price: editingListing.price || '',
+        houseType: editingListing.house_type || '',
+        area: editingListing.area || '',
+        description: editingListing.description || '',
+        contactName: editingListing.contact_name || '',
+        contactPhone: editingListing.contact_phone || '',
+        contactWechat: editingListing.contact_wechat || '',
+        status: editingListing.status || 'published'
+      })
+    } else {
+      // 重置表单
+      setFormData({
+        title: '',
+        city: '',
+        district: '',
+        address: '',
+        price: '',
+        houseType: '',
+        area: '',
+        description: '',
+        contactName: '',
+        contactPhone: '',
+        contactWechat: '',
+        status: 'published'
+      })
+      setImages([])
+    }
+  }, [editingListing, isOpen])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -58,16 +95,36 @@ function ListingForm({ isOpen, onClose, onSuccess }) {
         throw new Error('请填写必填字段：标题、城市、价格、联系电话')
       }
 
-      // 准备提交数据
+      // 准备提交数据 - 确保字段名与后端一致
       const submitData = {
-        ...formData,
+        title: formData.title,
+        city: formData.city,
+        district: formData.district,
+        address: formData.address,
         price: parseInt(formData.price),
+        houseType: formData.houseType,  // 确保字段名一致
         area: formData.area ? parseInt(formData.area) : null,
+        description: formData.description,
+        contactName: formData.contactName,  // 确保字段名一致
+        contactPhone: formData.contactPhone,
+        contactWechat: formData.contactWechat,
+        status: formData.status,
         images: images.map(img => img.name)
       }
+      
+      // 调试日志：打印提交的数据
+      console.log('提交的数据:', submitData)
+      console.log('编辑房源ID:', editingListing?.id)
 
-      // 调用API创建房源
-      const response = await listingAPI.createListing(submitData)
+      let response
+      
+      if (editingListing) {
+        // 编辑房源
+        response = await listingAPI.updateListing(editingListing.id, submitData)
+      } else {
+        // 创建新房源
+        response = await listingAPI.createListing(submitData)
+      }
       
       if (response.success) {
         // 清空表单
@@ -91,7 +148,7 @@ function ListingForm({ isOpen, onClose, onSuccess }) {
         onSuccess(response.data)
         onClose()
       } else {
-        throw new Error(response.error || '发布失败')
+        throw new Error(response.error || (editingListing ? '更新失败' : '发布失败'))
       }
     } catch (err) {
       setError(err.message)
@@ -107,7 +164,9 @@ function ListingForm({ isOpen, onClose, onSuccess }) {
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">发布新房源</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {editingListing ? '编辑房源' : '发布新房源'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -389,7 +448,7 @@ function ListingForm({ isOpen, onClose, onSuccess }) {
               disabled={loading}
               className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
             >
-              {loading ? '发布中...' : '发布房源'}
+              {loading ? (editingListing ? '更新中...' : '发布中...') : (editingListing ? '更新房源' : '发布房源')}
             </button>
           </div>
         </form>
