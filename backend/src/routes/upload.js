@@ -50,7 +50,7 @@ router.post('/single', upload.single('image'), (req, res) => {
       })
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`
+    const imageUrl = `http://localhost:8010/uploads/${req.file.filename}`
     
     res.json({
       success: true,
@@ -86,7 +86,7 @@ router.post('/multiple', upload.array('images', 10), (req, res) => {
       originalName: file.originalname,
       size: file.size,
       mimetype: file.mimetype,
-      url: `/uploads/${file.filename}`
+      url: `http://localhost:8010/uploads/${file.filename}`
     }))
 
     res.json({

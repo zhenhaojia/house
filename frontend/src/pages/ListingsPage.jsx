@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Filter, Grid, List, MapPin, Bed, Square, XCircle } from 'lucide-react'
+import { Filter, Grid, List, MapPin, Bed, Square, Eye, XCircle } from 'lucide-react'
 import { listingAPI } from '../services/api'
+import SmartImage from '../components/ImagePlaceholder'
 
 function ListingsPage() {
   const [searchParams] = useSearchParams()
@@ -41,6 +42,26 @@ function ListingsPage() {
 
     fetchListings()
   }, [filters])
+
+  // 查看房源详情
+  const handleViewListing = (listing) => {
+    // 统一处理字段名映射，确保前端使用驼峰命名
+    const processedListing = {
+      ...listing,
+      // 如果后端返回蛇形命名，转换为驼峰命名
+      contactName: listing.contact_name || listing.contactName,
+      contactPhone: listing.contact_phone || listing.contactPhone,
+      contactWechat: listing.contact_wechat || listing.contactWechat,
+      houseType: listing.house_type || listing.houseType,
+      // 保持原有的蛇形命名字段以便向后兼容
+      contact_name: listing.contact_name,
+      contact_phone: listing.contact_phone,
+      contact_wechat: listing.contact_wechat,
+      house_type: listing.house_type
+    }
+    
+    setViewingListing(processedListing)
+  }
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">加载中...</div>
@@ -131,7 +152,18 @@ function ListingsPage() {
               <div key={listing.id} className="card hover:shadow-md transition-shadow">
                 <div className={viewMode === 'grid' ? '' : 'flex'}>
                   {/* 房源图片 */}
-                  <div className={viewMode === 'grid' ? 'h-48 bg-gray-200 rounded-t-lg' : 'w-48 h-32 bg-gray-200 rounded-l-lg'} />
+                  <div className={viewMode === 'grid' ? 'relative h-48 rounded-t-lg overflow-hidden' : 'relative w-48 h-32 rounded-l-lg overflow-hidden'}>
+                    <SmartImage
+                      src={listing.images && listing.images.length > 0 ? listing.images[0] : null}
+                      alt={listing.title}
+                      className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
+                      size="medium"
+                      variant="house"
+                      message="暂无图片"
+                      containerClass="w-full h-full"
+                      lazy={true}
+                    />
+                  </div>
                   
                   <div className="p-4 flex-1">
                     <div className="flex justify-between items-start mb-2">
@@ -159,8 +191,11 @@ function ListingsPage() {
                     
                     <button 
                       className="btn-primary w-full"
-                      onClick={() => setViewingListing(listing)}
-                    >查看详情</button>
+                      onClick={() => handleViewListing(listing)}
+                    >
+                      <Eye className="h-4 w-4 inline mr-1" />
+                      查看详情
+                    </button>
                   </div>
                 </div>
               </div>
@@ -182,6 +217,20 @@ function ListingsPage() {
               >
                 <XCircle className="h-6 w-6" />
               </button>
+            </div>
+
+            {/* 房源图片 */}
+            <div className="relative h-64">
+              <SmartImage
+                src={viewingListing.images && viewingListing.images.length > 0 ? viewingListing.images[0] : null}
+                alt={viewingListing.title}
+                className="w-full h-full object-cover"
+                size="large"
+                variant="house"
+                message="暂无房源图片"
+                containerClass="w-full h-full"
+                lazy={true}
+              />
             </div>
 
             {/* 详情内容 */}
@@ -219,7 +268,7 @@ function ListingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">户型</label>
-                    <p className="text-gray-900">{viewingListing.houseType || '未填写'}</p>
+                    <p className="text-gray-900">{viewingListing.house_type || viewingListing.houseType || '未填写'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">面积</label>
@@ -240,15 +289,15 @@ function ListingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">联系人</label>
-                    <p className="text-gray-900">{viewingListing.contactName || '未填写'}</p>
+                    <p className="text-gray-900">{viewingListing.contact_name || viewingListing.contactName || '未填写'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">联系电话</label>
-                    <p className="text-gray-900">{viewingListing.contactPhone}</p>
+                    <p className="text-gray-900">{viewingListing.contact_phone || viewingListing.contactPhone}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">微信</label>
-                    <p className="text-gray-900">{viewingListing.contactWechat || '未填写'}</p>
+                    <p className="text-gray-900">{viewingListing.contact_wechat || viewingListing.contactWechat || '未填写'}</p>
                   </div>
                 </div>
               </div>

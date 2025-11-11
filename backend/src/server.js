@@ -12,6 +12,7 @@ import userRoutes from './routes/users.js'
 import analyticsRoutes from './routes/analytics.js'
 import adminRoutes from './routes/admin.js'
 import authRoutes from './routes/auth.js'
+import uploadRoutes from './routes/upload.js'
 
 // 中间件导入
 import dbMiddleware from './middleware/db.js'
@@ -35,7 +36,7 @@ app.use(limiter)
 
 // CORS配置
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3012'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3008', 'http://localhost:3009', 'http://localhost:3010', 'http://localhost:3011', 'http://localhost:3012', 'http://localhost:3013', 'http://localhost:3014', 'http://localhost:3015', 'http://localhost:3016', 'http://127.0.0.1:3016'],
   credentials: true
 }))
 
@@ -56,6 +57,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/upload', uploadRoutes)
 
 // 健康检查端点
 app.get('/health', (req, res) => {

@@ -77,7 +77,10 @@ router.get('/', async (req, res) => {
         contact_phone: '13800138001',
         contact_wechat: 'zhang138001',
         status: 'published',
-        created_at: '2024-01-01 10:00:00'
+        created_at: '2024-01-01 10:00:00',
+        images: [
+          'https://picsum.photos/800/600?random=1'
+        ]
       },
       {
         id: 2,
@@ -93,7 +96,10 @@ router.get('/', async (req, res) => {
         contact_phone: '13900139001',
         contact_wechat: 'li139001',
         status: 'published',
-        created_at: '2024-01-02 11:00:00'
+        created_at: '2024-01-02 11:00:00',
+        images: [
+          'https://picsum.photos/800/600?random=2'
+        ]
       },
       {
         id: 3,
@@ -109,7 +115,10 @@ router.get('/', async (req, res) => {
         contact_phone: '13700137001',
         contact_wechat: 'wang137001',
         status: 'published',
-        created_at: '2024-01-03 12:00:00'
+        created_at: '2024-01-03 12:00:00',
+        images: [
+          'https://picsum.photos/800/600?random=3'
+        ]
       },
       {
         id: 4,
@@ -125,7 +134,10 @@ router.get('/', async (req, res) => {
         contact_phone: '13600136001',
         contact_wechat: 'zhao136001',
         status: 'published',
-        created_at: '2024-01-04 13:00:00'
+        created_at: '2024-01-04 13:00:00',
+        images: [
+          'https://picsum.photos/800/600?random=4'
+        ]
       },
       {
         id: 5,
@@ -177,6 +189,12 @@ router.get('/', async (req, res) => {
       listings = listings.slice(offset, offset + parseInt(limit))
     } else {
       listings = result.data
+      
+      // 处理每个房源的数据，添加images数组
+      listings = listings.map(listing => ({
+        ...listing,
+        images: listing.main_image_url ? [listing.main_image_url] : []
+      }))
       
       // 查询总数
       console.log('总数查询SQL:', `SELECT COUNT(*) as total FROM listings ${whereClause}`)
@@ -240,12 +258,25 @@ router.get('/:id', async (req, res) => {
 
     const listing = result.data[0]
 
-    // 模拟图片数据（实际项目中应该从数据库查询）
-    const mockImages = [
-      '/images/listing1-1.jpg',
-      '/images/listing1-2.jpg',
-      '/images/listing1-3.jpg'
-    ]
+    // 获取房源图片数据
+    let images = []
+    
+    // 如果有主图URL，添加到图片数组
+    if (listing.main_image_url) {
+      images.push(listing.main_image_url)
+    }
+    
+    // 如果有其他图片URL，也添加到图片数组
+    if (listing.image_urls && listing.image_urls.length > 0) {
+      images = images.concat(listing.image_urls)
+    }
+    
+    // 如果没有图片，使用占位图片
+    if (images.length === 0) {
+      images = [
+        '/images/house-placeholder.jpg'
+      ]
+    }
 
     // 模拟特色和设施数据
     const mockFeatures = ['精装修', '家电齐全', '近地铁', '拎包入住', '可短租']
@@ -255,7 +286,7 @@ router.get('/:id', async (req, res) => {
       success: true,
       data: {
         ...listing,
-        images: mockImages,
+        images: images,
         features: mockFeatures,
         amenities: mockAmenities
       }
@@ -309,6 +340,8 @@ router.post('/', async (req, res) => {
       contactName,
       contactPhone,
       contactWechat,
+      main_image_url,
+      images,
       status = 'published'
     } = req.body
 
@@ -320,27 +353,48 @@ router.post('/', async (req, res) => {
       })
     }
 
+    // 处理图片数据：如果有images数组，取第一个作为主图
+    let finalMainImageUrl = main_image_url
+    if (images && images.length > 0 && !main_image_url) {
+      finalMainImageUrl = images[0]
+    }
+
     // 插入房源数据
     const result = await query(`
       INSERT INTO listings (
         title, city, district, address, price, house_type, area, 
-        description, contact_name, contact_phone, contact_wechat, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        description, contact_name, contact_phone, contact_wechat, main_image_url, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       title, city, district || '', address || '', parseInt(price), houseType || '', area ? parseInt(area) : null,
-      description || '', contactName || '', contactPhone, contactWechat || '', status
+      description || '', contactName || '', contactPhone, contactWechat || '', finalMainImageUrl || null, status
     ])
 
     if (result.success) {
+      // 获取刚插入的房源信息
+      const listingId = result.data.insertId
+      const listingResult = await query(
+        'SELECT * FROM listings WHERE id = ?',
+        [listingId]
+      )
+
+      let listingData = listingResult.data[0]
+      
+      // 构建图片数据：从数据库字段生成images数组
+      let imagesArray = []
+      if (listingData.main_image_url) {
+        imagesArray.push(listingData.main_image_url)
+      }
+      
+      // 返回完整的房源数据，包含images数组
+      const responseData = {
+        ...listingData,
+        images: imagesArray
+      }
+
       res.json({
         success: true,
-        data: {
-          id: result.data.insertId,
-          title,
-          city,
-          status,
-          createdAt: new Date().toISOString()
-        },
+        data: responseData,
         message: '房源发布成功'
       })
     } else {
@@ -387,17 +441,19 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    // 更新房源数据
+    // 更新房源数据 - 添加主图片URL字段
     const result = await query(`
       UPDATE listings SET 
         title = ?, city = ?, district = ?, address = ?, price = ?, 
         house_type = ?, area = ?, description = ?, 
-        contact_name = ?, contact_phone = ?, contact_wechat = ?, status = ?, updated_at = NOW()
+        contact_name = ?, contact_phone = ?, contact_wechat = ?, 
+        main_image_url = ?, status = ?, updated_at = NOW()
       WHERE id = ?
     `, [
       title, city, district || '', address || '', parseInt(price), 
       houseType || '', area ? parseInt(area) : null, description || '', 
-      contactName || '', contactPhone, contactWechat || '', status, parseInt(id)
+      contactName || '', contactPhone, contactWechat || '', 
+      req.body.main_image_url || null, status, parseInt(id)
     ])
 
     if (result.success) {

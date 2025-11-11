@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Upload, MapPin, Bed, Square, DollarSign } from 'lucide-react'
-import { listingAPI } from '../services/api'
+import { listingAPI, uploadAPI } from '../services/api'
+import SmartImage from './ImagePlaceholder'
 
 function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
   const [formData, setFormData] = useState({
@@ -90,9 +91,54 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
     setError('')
 
     try {
-      // 验证必填字段
-      if (!formData.title || !formData.city || !formData.price || !formData.contactPhone) {
-        throw new Error('请填写必填字段：标题、城市、价格、联系电话')
+  // 验证必填字段
+  if (!formData.title || !formData.city || !formData.price || !formData.contactPhone) {
+    throw new Error('请填写必填字段：标题、城市、价格、联系电话')
+  }
+  
+  // 验证联系信息完整性
+  if (!formData.contactName) {
+    throw new Error('请填写联系人姓名，方便租客联系')
+  }
+  
+  // 验证房源信息完整性
+  if (!formData.houseType) {
+    throw new Error('请选择户型信息，帮助租客更好地了解房源')
+  }
+  
+  if (!formData.area || formData.area <= 0) {
+    throw new Error('请填写房源面积，面积是租客选择的重要参考')
+  }
+
+      // 如果有图片，先上传图片
+      let imageUrls = []
+      if (images.length > 0) {
+        try {
+          for (const image of images) {
+            if (image.file) {
+              // 真实上传文件
+              const formData = new FormData()
+              formData.append('image', image.file)
+              
+              console.log('开始上传图片:', image.name)
+              
+              const uploadResult = await uploadAPI.uploadSingle(formData)
+              console.log('图片上传结果:', uploadResult)
+              
+              if (uploadResult.success) {
+                imageUrls.push(uploadResult.data.url)
+              } else {
+                throw new Error(uploadResult.error || '图片上传失败')
+              }
+            } else if (image.preview && image.preview.startsWith('/uploads/')) {
+              // 如果是编辑时已有的图片URL（只处理真实上传的图片）
+              imageUrls.push(image.preview)
+            }
+          }
+        } catch (uploadError) {
+          console.error('图片上传过程中出错:', uploadError)
+          throw new Error(`图片上传失败: ${uploadError.message}`)
+        }
       }
 
       // 准备提交数据 - 确保字段名与后端一致
@@ -109,7 +155,8 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
         contactPhone: formData.contactPhone,
         contactWechat: formData.contactWechat,
         status: formData.status,
-        images: images.map(img => img.name)
+        main_image_url: imageUrls.length > 0 ? imageUrls[0] : null,
+        images: imageUrls
       }
       
       // 调试日志：打印提交的数据
@@ -274,13 +321,14 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Bed className="h-4 w-4 inline mr-1" />
-                  户型
+                  户型 *
                 </label>
                 <select
                   name="houseType"
                   value={formData.houseType}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
                 >
                   <option value="">选择户型</option>
                   {houseTypes.map(type => (
@@ -292,7 +340,7 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Square className="h-4 w-4 inline mr-1" />
-                  面积（㎡）
+                  面积（㎡） *
                 </label>
                 <input
                   type="number"
@@ -302,6 +350,7 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="例如：75"
                   min="0"
+                  required
                 />
               </div>
             </div>
@@ -350,18 +399,32 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {images.map((image, index) => (
                   <div key={index} className="relative group">
-                    <img
-                      src={image.preview}
-                      alt={image.name}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
+                    <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                      <SmartImage
+                        src={image.preview}
+                        alt={image.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        size="small"
+                        variant="camera"
+                        message="预览图片"
+                        containerClass="w-full h-full"
+                        lazy={false}
+                      />
+                      {!image.file && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
+                      title="删除图片"
                     >
                       <X className="h-3 w-3" />
                     </button>
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {image.name}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -374,7 +437,7 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  联系人姓名
+                  联系人姓名 *
                 </label>
                 <input
                   type="text"
@@ -383,6 +446,7 @@ function ListingForm({ isOpen, onClose, onSuccess, editingListing }) {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="例如：张先生"
+                  required
                 />
               </div>
 

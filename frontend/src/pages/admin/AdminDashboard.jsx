@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Edit, Trash2, Eye, BarChart3, Users, Home, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { Plus, Edit, Trash2, BarChart3, Users, Home, Clock, CheckCircle, ArrowLeft } from 'lucide-react'
 import { listingAPI } from '../../services/api'
 import ListingForm from '../../components/ListingForm'
+import SmartImage from '../../components/ImagePlaceholder'
 
 function AdminDashboard() {
   const navigate = useNavigate()
@@ -17,7 +18,6 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [showListingForm, setShowListingForm] = useState(false)
   const [editingListing, setEditingListing] = useState(null)
-  const [viewingListing, setViewingListing] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // 检查认证状态
@@ -122,11 +122,6 @@ function AdminDashboard() {
   const handleListingSuccess = (newListing) => {
     // 刷新数据
     fetchData()
-  }
-
-  // 查看房源详情
-  const handleViewListing = (listing) => {
-    setViewingListing(listing)
   }
 
   // 编辑房源
@@ -338,13 +333,6 @@ function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button 
-                          onClick={() => handleViewListing(listing)}
-                          className="text-primary-600 hover:text-primary-900"
-                        >
-                          <Eye className="h-4 w-4 inline mr-1" />
-                          查看
-                        </button>
-                        <button 
                           onClick={() => handleEditListing(listing)}
                           className="text-gray-600 hover:text-gray-900"
                         >
@@ -438,133 +426,7 @@ function AdminDashboard() {
         editingListing={editingListing}
       />
 
-      {/* 房源详情查看模态框 */}
-      {viewingListing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* 头部 */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">房源详情</h2>
-              <button
-                onClick={() => setViewingListing(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* 详情内容 */}
-            <div className="p-6 space-y-6">
-              {/* 基本信息 */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">基本信息</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">房源标题</label>
-                    <p className="text-gray-900">{viewingListing.title}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">所在城市</label>
-                    <p className="text-gray-900">{viewingListing.city}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">区域/商圈</label>
-                    <p className="text-gray-900">{viewingListing.district || '未填写'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">详细地址</label>
-                    <p className="text-gray-900">{viewingListing.address || '未填写'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 房源详情 */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">房源详情</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">月租金</label>
-                    <p className="text-gray-900">¥{viewingListing.price}/月</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">户型</label>
-                    <p className="text-gray-900">{viewingListing.houseType || '未填写'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">面积</label>
-                    <p className="text-gray-900">{viewingListing.area ? `${viewingListing.area}㎡` : '未填写'}</p>
-                  </div>
-                </div>
-                {viewingListing.description && (
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">房源描述</label>
-                    <p className="text-gray-900 whitespace-pre-wrap">{viewingListing.description}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* 联系方式 */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">联系方式</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">联系人</label>
-                    <p className="text-gray-900">{viewingListing.contactName || '未填写'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">联系电话</label>
-                    <p className="text-gray-900">{viewingListing.contactPhone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">微信</label>
-                    <p className="text-gray-900">{viewingListing.contactWechat || '未填写'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 状态信息 */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">状态信息</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">发布状态</label>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      viewingListing.status === 'published' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {viewingListing.status === 'published' ? '已发布' : '草稿'}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">创建时间</label>
-                    <p className="text-gray-900">{viewingListing.createdAt || '未知'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 操作按钮 */}
-            <div className="flex justify-end space-x-4 p-6 border-t border-gray-200">
-              <button
-                onClick={() => setViewingListing(null)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                关闭
-              </button>
-              <button
-                onClick={() => {
-                  handleEditListing(viewingListing)
-                  setViewingListing(null)
-                }}
-                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-              >
-                编辑房源
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   )
 }
