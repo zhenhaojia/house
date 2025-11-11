@@ -1,82 +1,89 @@
-# 易居：各地租房推荐平台 (EasyRent)
+# 房屋租赁管理系统
 
-基于需求文档创建的MVP版本住房推荐网站。
+这是一个完整的房屋租赁管理系统，包含租客、房东和管理员功能。
+
+## 功能特性
+
+### 租客功能
+- 浏览房源列表
+- 查看房源详情
+- 收藏喜欢的房源
+- 联系房东（快速联系和详细咨询）
+- 预约看房
+
+### 房东功能
+- 发布房源信息
+- 管理房源状态
+- 处理租客咨询
+- 查看预约记录
+
+### 管理员功能
+- 用户管理
+- 房源审核
+- 系统配置
+- 数据统计
+
+## 技术栈
+
+### 前端
+- React.js
+- Vite
+- Ant Design
+- Axios
+
+### 后端
+- Node.js
+- Express.js
+- MySQL
+- JWT认证
+
+## 快速开始
+
+### 环境要求
+- Node.js 16+
+- MySQL 8.0+
+
+### 安装依赖
+```bash
+# 前端
+cd frontend
+npm install
+
+# 后端
+cd backend
+npm install
+```
+
+### 数据库配置
+1. 创建MySQL数据库
+2. 导入数据库脚本 `database/schema.sql`
+3. 配置数据库连接信息
+
+### 启动服务
+```bash
+# 启动后端服务
+cd backend
+npm start
+
+# 启动前端服务
+cd frontend
+npm run dev
+```
 
 ## 项目结构
 
 ```
-easyrent-housing-platform/
-├── backend/          # 后端API服务 (Node.js + Express)
-├── frontend/         # 前端界面 (React + Vite)
-├── database/         # 数据库配置和迁移文件
-├── docs/            # 项目文档
-└── package.json     # 根项目配置
+house-master/
+├── backend/           # 后端服务
+├── frontend/          # 前端应用
+├── database/          # 数据库脚本
+├── docs/              # 项目文档
+└── README.md          # 项目说明
 ```
 
-## 功能特性
+## 部署
 
-### 租客前台模块
-- 首页搜索和热门城市推荐
-- 房源列表页（筛选、排序、分页）
-- 房源详情页（图片画廊、详细信息、联系方式）
+项目支持Docker部署，使用提供的`docker-compose.yml`文件即可快速部署。
 
-### 房源管理后台模块
-- 管理员登录认证
-- 房源CRUD操作
-- 图片上传和管理
-
-## 技术栈
-
-**前端：**
-- React 18 + TypeScript
-- Vite 构建工具
-- Tailwind CSS 样式框架
-- React Router 路由管理
-
-**后端：**
-- Node.js + Express
-- MySQL 数据库
-- JWT 认证
-- Multer 文件上传
-
-## 快速开始
-
-1. 安装依赖：
-```bash
-npm run install:all
-```
-
-2. 配置环境变量：
-```bash
-# 复制并配置后端环境变量
-cp backend/.env.example backend/.env
-
-# 复制并配置前端环境变量  
-cp frontend/.env.example frontend/.env
-```
-
-3. 启动开发服务器：
-```bash
-npm run dev
-```
-
-4. 访问应用：
-- 前台界面：http://localhost:3000
-- 后台管理：http://localhost:3000/admin
-- API服务：http://localhost:8000
-
-## 数据库设置
-
-项目使用MySQL数据库，请确保已安装并运行MySQL服务，然后执行：
-
-```bash
-# 创建数据库
-mysql -u root -p -e "CREATE DATABASE easyrent;"
-
-# 运行数据库迁移
-cd backend && npm run db:migrate
-```
-
-## 开发指南
-
-详细开发文档请参考 `docs/` 目录下的文件。
+---
+*最后更新: 2025-11-11*
